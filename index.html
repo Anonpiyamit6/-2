@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการคะแนนความประพฤติ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+<style>
+    /* Global Styles */
+    * { font-family: 'Sarabun', sans-serif; }
+    body { background-color: #f0f7ff; margin: 0; transition: padding-left 0.3s ease-in-out; }
+    .text-theme-primary { color: #3b82f6; }
+    .text-theme-secondary { color: #2563eb; }
+
+/* Header */
+.header {
+    background-color: #374151; /* สีเดียวกับ sidebar */
+    height: 64px; /* ความสูงของ header */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000; /* อยู่เหนือเนื้อหาอื่น ๆ */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* เงาเล็กน้อยเพื่อความสวยงาม */
+}
+
+/* เพิ่มสไตล์สำหรับ h1 ใน header เพื่อขยับข้อความชื่อระบบ */
+.header h1 {
+    padding-left: 40px; /* เพิ่มระยะห่างด้านซ้ายเพื่อขยับข้อความไปทางขวา */
+}
+
+/* User Info */
+#user-info {
+    display: flex;
+    align-items: center;
+}
+
+#user-info .bg-white {
+    background-color: #ffffff;
+    color: #1f2937; /* สีเทาเข้ม */
+    padding: 6px 12px;
+    border-radius: 9999px; /* มุมโค้งมน */
+    font-size: 0.875rem; /* ขนาดตัวอักษร */
+    font-weight: 500; /* น้ำหนักตัวอักษร */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* เงาเล็กน้อย */
+    transition: background-color 0.2s ease; /* การเปลี่ยนสีพื้นหลังอย่างนุ่มนวล */
+}
+
+#user-info .bg-white:hover {
+    background-color: #f1f5f9; /* สีอ่อนลงเมื่อ hover */
+}
+
+    /* Buttons */
+    .btn { 
+        transition: all 0.3s ease; 
+        border-radius: 8px; 
+        padding: 10px 20px; 
+        font-weight: 600; 
+        border: none; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        cursor: pointer; 
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+    .btn:disabled { 
+        background-color: #d1d5db; 
+        cursor: not-allowed; 
+        transform: none; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+    }
+    .btn-primary { background-color: #3b82f6; color: white; }
+    .btn-primary:hover:not(:disabled) { background-color: #2563eb; }
+    .btn-secondary { background-color: #2563eb; color: white; }
+    .btn-secondary:hover:not(:disabled) { background-color: #1d4ed8; }
+    .btn-green { background-color: #10b981; color: white; }
+    .btn-green:hover:not(:disabled) { background-color: #059669; }
+    .btn-sm { padding: 5px 10px; font-size: 0.875rem; }
+    
+    /* Action Icons in Tables */
+    .action-icon { 
+        cursor: pointer; 
+        display: inline-block; 
+        padding: 4px; 
+        border-radius: 50%; 
+        transition: background-color 0.2s ease; 
+    }
+    .action-icon:hover { background-color: #eff6ff; }
+    .action-icon svg { width: 20px; height: 20px; }
+    .edit-icon { color: #3b82f6; }
+    .delete-icon { color: #ef4444; }
+
+    /* Cards */
+    .card { 
+        border-radius: 12px; 
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+        background-color: white; 
+        transition: all 0.3s ease; 
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1); }
+    
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    height: calc(100vh - 64px); /* ปรับความสูงให้ครอบคลุมด้านล่าง Header */
+    position: fixed;
+    top: 64px; /* เริ่มต้นด้านล่าง Header */
+    left: 0;
+    z-index: 1000;
+    background-color: #374151;
+    padding-top: 20px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+    transform: translateX(0);
+    transition: transform 0.3s ease-in-out;
+}
+.sidebar.collapsed {
+    transform: translateX(-100%);
+}
+    .sidebar-brand {
+        padding: 0 20px 0 60px;
+        margin-bottom: 2rem;
+    }
+    .sidebar-item { 
+        padding: 12px 20px; 
+        margin: 8px 10px; 
+        border-radius: 8px; 
+        transition: all 0.3s ease; 
+        display: flex; 
+        align-items: center; 
+        font-weight: 500; 
+        color: #d1d5db; 
+        cursor: pointer; 
+    }
+    .sidebar-item:hover { background-color: #4b5563; color: #3b82f6; }
+    .sidebar-item.active { 
+        background: #facc15; 
+        color: #1f2937; 
+        font-weight: 600; 
+        box-shadow: 0 4px 8px rgba(250, 204, 21, 0.3); 
+    }
+    .sidebar-icon { margin-right: 15px; width: 20px; height: 20px; }
+    /* เพิ่มสไตล์สำหรับปุ่มออกจากระบบสีแดง */
+    .sidebar-item-logout {
+        padding: 12px 20px; 
+        margin: 8px 10px; 
+        border-radius: 8px; 
+        transition: all 0.3s ease; 
+        display: flex; 
+        align-items: center; 
+        font-weight: 500; 
+        color: #ffffff; 
+        cursor: pointer; 
+        background-color: #ef4444; /* สีแดง */
+    }
+    .sidebar-item-logout:hover { 
+        background-color: #dc2626; /* สีแดงเข้มเมื่อ hover */
+        color: #ffffff; 
+    }
+    /* เพิ่มสไตล์สำหรับ footer ของ sidebar */
+.sidebar-footer {
+    position: absolute; /* ตำแหน่งแบบ absolute เพื่อยึดติดกับด้านล่าง */
+    bottom: 0; /* ติดขอบล่างของ sidebar */
+    width: 100%; /* ให้กว้างเต็ม sidebar */
+    padding: 20px;
+    text-align: center;
+    background-color: #374151; /* สีพื้นหลังให้กลมกลืนกับ sidebar */
+}
+
+    /* Content Area */
+.content {
+    padding: 20px;
+    min-height: 100vh;
+    transition: margin-left 0.3s ease-in-out;
+    margin-left: 260px;
+    margin-top: 20px; /* ลด margin-top เพื่อให้เนื้อหาสูงขึ้น */
+}
+
+body.sidebar-collapsed .content {
+    margin-left: 0;
+    margin-top: 64px; /* คง margin-top สำหรับ header */
+}
+.sidebar-toggle {
+    position: fixed;
+    top: 20px; /* ปรับให้อยู่ใน Header */
+    left: 15px;
+    z-index: 1001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.sidebar-toggle svg {
+    width: 24px;
+    height: 24px;
+    stroke: #ffffff; /* เปลี่ยนสีขีดสามขีดเป็นสีขาว */
+}
+    .sidebar-close-btn { display: none; }
+
+    /* Login Page */
+    .login-page-bg { background: linear-gradient(135deg, #93c5fd 0%, #bfdbfe 100%); }
+    .login-card { 
+        background: rgba(255, 255, 255, 0.95); 
+        backdrop-filter: blur(10px); 
+        border: 1px solid rgba(255, 255, 255, 0.2); 
+    }
+    .login-input { 
+        border-radius: 8px; 
+        border: 1px solid #d1d5db; 
+        padding: 12px 15px; 
+        transition: all 0.3s ease; 
+    }
+    .login-input:focus { 
+        border-color: #3b82f6; 
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); 
+        outline: none; 
+    }
+    .login-btn { 
+        background: #3b82f6; 
+        color: white; 
+        font-weight: 600; 
+        padding: 12px; 
+        border-radius: 8px; 
+    }
+    .login-btn:hover { background: #2563eb; }
+
+    /* Table */
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+    th { 
+        padding: 12px 15px; 
+        text-align: left; 
+        background-color: #eff6ff; 
+        color: #1f2937; 
+        font-weight: 600; 
+    }
+    td { 
+        padding: 12px 15px; 
+        background-color: white; 
+        vertical-align: middle; 
+    }
+    tr { box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
+    tr:hover td { background-color: #f8fafc; }
+    th:first-child, td:first-child { 
+        border-top-left-radius: 8px; 
+        border-bottom-left-radius: 8px; 
+    }
+    th:last-child, td:last-child { 
+        border-top-right-radius: 8px; 
+        border-bottom-right-radius: 8px; 
+    }
+    .score-danger { color: #ef4444; font-weight: 600; }
+    .score-warning { color: #f97316; font-weight: 600; }
+    .score-good { color: #22c55e; font-weight: 600; }
+    .score-added { color: #10b981; font-weight: 600; }
+
+    /* Pagination */
+    .pagination-container { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-top: 1.5rem; 
+        padding: 0.5rem; 
+        flex-wrap: wrap; 
+        gap: 10px; 
+    }
+    .pagination-controls { display: flex; align-items: center; }
+    .pagination-controls button, .pagination-controls span { 
+        margin: 0 4px; 
+        padding: 8px 12px; 
+        border: 1px solid #d1d5db; 
+        border-radius: 6px; 
+        cursor: pointer; 
+        background-color: white; 
+    }
+    .pagination-controls button:disabled { cursor: not-allowed; opacity: 0.5; }
+    .pagination-controls .page-item.active { 
+        background-color: #3b82f6; 
+        color: white; 
+        border-color: #3b82f6; 
+        font-weight: 600; 
+    }
+    .pagination-info { font-size: 0.875rem; color: #4b5563; }
+
+    /* Form Validation */
+    .error { color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; }
+    input.error, select.error, textarea.error { border-color: #ef4444 !important; }
+
+    /* Modal */
+    .modal { 
+        display: none; 
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%; 
+        background-color: rgba(0, 0, 0, 0.5); 
+        z-index: 2000; 
+        justify-content: center; 
+        align-items: center; 
+    }
+    .modal-content { 
+        background-color: #fff; 
+        padding: 25px; 
+        border-radius: 12px; 
+        width: 90%; 
+        max-width: 550px; 
+        max-height: 90vh; 
+        overflow-y: auto; 
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3); 
+        position: relative; 
+    }
+    .modal-close { 
+        position: absolute; 
+        top: 10px; 
+        right: 15px; 
+        font-size: 1.5rem; 
+        cursor: pointer; 
+        color: #6b7280; 
+    }
+    .modal-close:hover { color: #1f2937; }
+
+    /* Responsive */
+@media (max-width: 768px) {
+    body {
+        padding-left: 0 !important;
+    }
+    .sidebar {
+        transform: translateX(-100%);
+        top: 64px; /* คงตำแหน่งด้านล่าง Header ในโหมดมือถือ */
+        height: calc(100vh - 64px); /* ปรับความสูงให้สอดคล้อง */
+    }
+    .sidebar.toggled {
+        transform: translateX(0);
+    }
+    .content {
+        margin-left: 0;
+        margin-top: 20px; /* คง margin-top สำหรับโหมดมือถือ */
+    }
+    .sidebar-toggle {
+        display: flex;
+    }
+}
+
+    
+
+    #studentHistoryModal .modal-content {
+        max-width: 1000px;
+    }
+
+    /* บังคับให้ SweetAlert2 แสดงผลด้านบนสุดเสมอ */
+    .swal2-container {
+        z-index: 2020 !important;
+    }
+
+    /* เปลี่ยนสีปุ่ม Export to CSV เป็นสีชมพู */
+    #export-csv {
+        background-color: #ec4899;
+    }
+
+    #export-csv:hover:not(:disabled) {
+        background-color: #db2777;
+    }
+
+    /* แก้ไขปัญหา Loading Indicator ถูกบัง */
+    #loading-overlay {
+        z-index: 9999 !important;
+    }
+</style>
+</head>
+<body class="sidebar-collapsed">
+
+<div class="sidebar-toggle">
+    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+    </svg>
+</div>
+
+<div id="login-page" class="page-content">
+    <div class="min-h-screen flex flex-col items-center justify-center login-page-bg p-4">
+        <div class="card login-card p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-theme-primary">ระบบจัดการคะแนนความประพฤติ</h1>
+                <p class="text-gray-600 mt-2">กรุณาเข้าสู่ระบบเพื่อใช้งาน</p>
+            </div>
+            <div id="teacher-login-form-container">
+                <h2 class="text-2xl font-semibold mb-6 text-center text-gray-700">สำหรับครู</h2>
+                <form id="teacherLoginForm">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2" for="username">ชื่อผู้ใช้</label>
+                        <input type="text" id="username" name="username" class="w-full login-input" placeholder="ระบุชื่อผู้ใช้" required>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-gray-700 mb-2" for="password">รหัสผ่าน</label>
+                        <input type="password" id="password" name="password" class="w-full login-input" placeholder="ระบุรหัสผ่าน" required>
+                    </div>
+                    <button type="submit" class="btn login-btn w-full">เข้าสู่ระบบ</button>
+                    <p class="mt-4 text-center">
+                        <a href="#" id="switch-to-student-login" class="text-theme-primary hover:underline">นักเรียนเข้าระบบ</a>
+                    </p>
+                </form>
+            </div>
+            <div id="student-login-form-container" class="hidden">
+                <h2 class="text-2xl font-semibold mb-6 text-center text-gray-700">สำหรับนักเรียน</h2>
+                <form id="studentLoginForm">
+                    <div class="mb-6">
+                        <label class="block text-gray-700 mb-2" for="student-code-login">รหัสนักเรียน</label>
+                        <input type="text" id="student-code-login" name="student-code-login" class="w-full login-input" placeholder="ระบุรหัสนักเรียน" required>
+                    </div>
+                    <button type="submit" class="btn login-btn w-full">ตรวจสอบคะแนน</button>
+                    <p class="mt-4 text-center">
+                        <a href="#" id="switch-to-teacher-login" class="text-theme-primary hover:underline">ครูเข้าระบบ</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="student-dashboard" class="page-content hidden">
+    <div id="student-user-info-container" class="absolute top-4 right-4 flex items-center space-x-2 z-10 hidden">
+        <span id="student-name-top-right" class="text-sm text-gray-700 p-2 bg-white rounded-lg shadow"></span>
+        <button id="student-logout" class="btn btn-sm btn-secondary">ออกจากระบบ</button>
+    </div>
+    <div class="content pt-16 md:pt-8">
+        <h1 class="text-3xl font-bold text-theme-primary mb-6">แดชบอร์ดนักเรียน</h1>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="card p-6 col-span-1 lg:col-span-3">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">ข้อมูลนักเรียน</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-gray-700">
+                    <p><strong>รหัสนักเรียน:</strong> <span id="student-code-display"></span></p>
+                    <p><strong>ชื่อ-สกุล:</strong> <span id="student-name-display"></span></p>
+                    <p><strong>ชั้นเรียน:</strong> <span id="student-class-display"></span></p>
+                    <p><strong>คะแนนเริ่มต้น:</strong> <span id="student-initial-score" class="font-bold"></span></p>
+                    <p><strong>คะแนนที่ได้รับเพิ่ม:</strong> <span id="student-added-score" class="score-added"></span></p>
+                    <p><strong>คะแนนที่ถูกหัก:</strong> <span id="student-deducted-score" class="score-danger"></span></p>
+                </div>
+                <div class="mt-4 pt-4 border-t">
+                    <p class="text-lg"><strong>คะแนนคงเหลือ:</strong> <span id="student-remaining-score" class="text-2xl font-bold text-theme-primary"></span></p>
+                </div>
+            </div>
+        </div>
+        <div class="card p-6">
+            <h3 class="text-xl font-semibold mb-4 text-gray-800">ประวัติคะแนนความประพฤติ</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>วันที่</th>
+                            <th>พฤติกรรม</th>
+                            <th>ประเภท</th>
+                            <th>คะแนน</th>
+                            <th>บันทึกเพิ่มเติม</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-infractions-table-body"></tbody>
+                </table>
+            </div>
+            <div id="student-infractions-pagination" class="pagination-container"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Sidebar -->
+<div id="sidebar" class="sidebar">
+    <div class="sidebar-brand flex justify-between items-center">
+        <h2 class="text-xl font-bold text-theme-primary">ระบบจัดการคะแนนความประพฤติ</h2>
+        <div class="sidebar-close-btn">
+            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </div>
+    </div>
+    <div class="sidebar-items mt-8">
+        <a class="sidebar-item active" data-page="dashboard">
+            <svg class="sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            แดชบอร์ด
+        </a>
+        <a class="sidebar-item" data-page="behavior-criteria">
+            <svg class="sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            จัดการพฤติกรรม
+        </a>
+        <a class="sidebar-item" data-page="manage-classes">
+            <svg class="sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5h6m-6 4h6m-6 4h6m-6 4h6"></path>
+            </svg>
+            จัดการชั้นเรียน
+        </a>
+        <a class="sidebar-item" data-page="manage-students">
+            <svg class="sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+            จัดการนักเรียน
+        </a>
+        <a class="sidebar-item" data-page="log-infraction">
+            <svg class="sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            บันทึกพฤติกรรม
+        </a>
+        <a class="sidebar-item" data-page="student-report">
+            <svg class="sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            รายงานนักเรียน
+        </a>
+    </div>
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+              <div class="text-white text-sm text-center mt-2"></div>
+        <a id="logout-btn" class="sidebar-item-logout">
+            <svg class="sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+            </svg>
+            ออกจากระบบ
+        </a>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div id="main-content" class="content hidden">
+    <div class="header fixed top-0 left-0 right-0 h-16 bg-[#374151] text-white flex items-center justify-between px-6 z-10 shadow-md">
+        <h1 class="text-xl font-bold">ระบบจัดการคะแนนความประพฤติ</h1>
+        <div id="user-info" class="flex items-center space-x-3">
+            <div class="bg-white text-gray-700 rounded-full px-3 py-1 text-sm font-medium shadow-sm">
+                <span id="current-username"></span>
+            </div>
+        </div>
+    </div>
+    <div class="mt-8"></div> <!-- ลด Spacer จาก mt-16 เป็น mt-8 -->
+    <div id="dashboard" class="page-content">
+        <h1 class="text-3xl font-bold text-theme-primary mb-6 mt-4">แดชบอร์ด</h1> <!-- ลดจาก mt-12 เป็น mt-4 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <div class="card p-6 flex items-center gap-4">
+                <div id="top-behavior-icon"></div>
+                <div>
+                    <p class="text-gray-500">พฤติกรรมที่พบบ่อย</p>
+                    <h3 class="text-xl font-semibold" id="top-behavior"></h3>
+                    <p class="text-gray-600" id="top-behavior-count"></p>
+                </div>
+            </div>
+            <div class="card p-6 flex items-center gap-4">
+                <div id="lowest-student-icon"></div>
+                <div>
+                    <p class="text-gray-500">นักเรียนคะแนนน้อยสุด</p>
+                    <h3 class="text-xl font-semibold" id="lowest-student"></h3>
+                    <p class="text-gray-600" id="lowest-score"></p>
+                </div>
+            </div>
+            <div class="card p-6 flex items-center gap-4">
+                <div id="reports-month-icon"></div>
+                <div>
+                    <p class="text-gray-500">รายงานเดือนนี้</p>
+                    <h3 class="text-xl font-semibold" id="total-reports"></h3>
+                    <p>รายการ</p>
+                </div>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div class="card p-6 lg:col-span-3">
+                <h3 class="text-lg font-semibold mb-4">สถิติพฤติกรรม</h3>
+                <div class="h-80"><canvas id="behaviorChart"></canvas></div>
+            </div>
+            <div class="card p-6 lg:col-span-2">
+                <h3 class="text-lg font-semibold mb-4">คะแนนเฉลี่ยตามชั้น</h3>
+                <div class="h-80"><canvas id="classChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="behavior-criteria" class="page-content hidden">
+        <h1 class="text-3xl font-bold text-theme-primary mb-6 mt-4">จัดการเกณฑ์พฤติกรรม</h1> <!-- ลดจาก mt-12 เป็น mt-4 -->
+        <div class="card p-6">
+            <button id="add-behavior" class="btn btn-primary mb-4">เพิ่มเกณฑ์พฤติกรรม</button>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>ชื่อพฤติกรรม</th>
+                            <th>ประเภท</th>
+                            <th>คะแนน</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="behavior-table-body"></tbody>
+                </table>
+            </div>
+            <div id="behavior-pagination" class="pagination-container"></div>
+        </div>
+    </div>
+    <div id="manage-classes" class="page-content hidden">
+        <h1 class="text-3xl font-bold text-theme-primary mb-6 mt-4">จัดการชั้นเรียน</h1> <!-- ลดจาก mt-12 เป็น mt-4 -->
+        <div class="card p-6">
+            <button id="add-class" class="btn btn-primary mb-4">เพิ่มชั้นเรียน</button>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>ชื่อชั้นเรียน</th>
+                            <th>นักเรียน (คน)</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="class-table-body"></tbody>
+                </table>
+            </div>
+            <div id="class-pagination" class="pagination-container"></div>
+        </div>
+    </div>
+    <div id="manage-students" class="page-content hidden">
+        <h1 class="text-3xl font-bold text-theme-primary mb-6 mt-4">จัดการนักเรียน</h1> <!-- ลดจาก mt-12 เป็น mt-4 -->
+        <div class="card p-6">
+            <div class="flex flex-wrap items-center gap-4 mb-4">
+                <button id="add-student" class="btn btn-primary">เพิ่มนักเรียน</button>
+                <button id="download-template" class="btn btn-secondary">ดาวน์โหลดเทมเพลต</button>
+                <input type="file" id="import-students" accept=".csv" class="hidden">
+                <button id="import-students-btn" class="btn btn-green">นำเข้าจาก CSV</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>รหัสนักเรียน</th>
+                            <th>ชื่อ-นามสกุล</th>
+                            <th>ชั้นเรียน</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-table-body"></tbody>
+                </table>
+            </div>
+            <div id="student-pagination" class="pagination-container"></div>
+        </div>
+    </div>
+    <div id="log-infraction" class="page-content hidden">
+        <h1 class="text-3xl font-bold text-theme-primary mb-6 mt-4">บันทึกพฤติกรรมนักเรียน</h1> <!-- ลดจาก mt-12 เป็น mt-4 -->
+        <div class="card p-6 mb-6">
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="filter-class-student">กรองตามชั้นเรียน</label>
+                <select id="filter-class-student" class="w-full md:w-1/3 p-2 border rounded-lg"></select>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>รหัสฯ</th>
+                            <th>ชื่อ (คลิกเพื่อดูประวัติ)</th>
+                            <th>ชั้นเรียน</th>
+                            <th>คะแนนคงเหลือ</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="infraction-student-table-body"></tbody>
+                </table>
+            </div>
+            <div id="infraction-student-pagination" class="pagination-container"></div>
+        </div>
+    </div>
+    <div id="student-report" class="page-content hidden">
+        <h1 class="text-3xl font-bold text-theme-primary mb-6 mt-4">รายงานนักเรียน</h1> <!-- ลดจาก mt-12 เป็น mt-4 -->
+        <div class="card p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-gray-700 mb-2">ค้นหานักเรียน</label>
+                    <input type="text" id="search-student-report" class="w-full p-2 border rounded-lg" placeholder="ชื่อ หรือ รหัสนักเรียน...">
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-2">กรองตามชั้นเรียน</label>
+                    <select id="filter-class-report" class="w-full p-2 border rounded-lg"></select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-2">กรองตามสถานะ</label>
+                    <select id="filter-status-report" class="w-full p-2 border rounded-lg">
+                        <option value="">ทั้งหมด</option>
+                        <option value="ปกติ">ปกติ</option>
+                        <option value="เฝ้าระวัง">เฝ้าระวัง</option>
+                        <option value="น่าห่วง">น่าห่วง</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end mt-4 space-x-2">
+                <button id="export-pdf" class="btn btn-secondary">Export to PDF</button>
+                <button id="export-csv" class="btn btn-primary">Export to CSV</button>
+            </div>
+        </div>
+        <div class="card p-6">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>รหัสฯ</th>
+                            <th>ชื่อ-สกุล</th>
+                            <th>ชั้น</th>
+                            <th>คะแนนคงเหลือ</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-table-body"></tbody>
+                </table>
+            </div>
+            <div id="report-pagination" class="pagination-container"></div>
+        </div>
+    </div>
+</div>
+
+<div id="behaviorModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close">×</span>
+        <h2 class="text-xl font-semibold mb-4 modal-title"></h2>
+        <form id="behaviorForm">
+            <input type="hidden" id="behavior-id">
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="behavior-type-select">ประเภท</label>
+                <select id="behavior-type-select" name="behavior-type-select" class="w-full p-2 border rounded-lg" required>
+                    <option value="negative">หักคะแนน (พฤติกรรมเชิงลบ)</option>
+                    <option value="positive">เพิ่มคะแนน (พฤติกรรมเชิงบวก)</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="behavior-name">ชื่อพฤติกรรม</label>
+                <input type="text" id="behavior-name" name="behavior-name" class="w-full p-2 border rounded-lg" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="behavior-score">คะแนน</label>
+                <input type="number" id="behavior-score" name="behavior-score" class="w-full p-2 border rounded-lg" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-full">บันทึก</button>
+        </form>
+    </div>
+</div>
+<div id="classModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close">×</span>
+        <h2 class="text-xl font-semibold mb-4 modal-title"></h2>
+        <form id="classForm">
+            <input type="hidden" id="class-id">
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="class-name">ชื่อชั้นเรียน</label>
+                <input type="text" id="class-name" name="class-name" class="w-full p-2 border rounded-lg" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-full">บันทึก</button>
+        </form>
+    </div>
+</div>
+<div id="studentModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close">×</span>
+        <h2 class="text-xl font-semibold mb-4 modal-title"></h2>
+        <form id="student-form">
+            <input type="hidden" id="student-form-uuid">
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="student-code-input">รหัสนักเรียน</label>
+                <input type="text" id="student-code-input" name="student-code-input" class="w-full p-2 border rounded-lg" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="student-form-name">ชื่อ-นามสกุล</label>
+                <input type="text" id="student-form-name" name="student-form-name" class="w-full p-2 border rounded-lg" required>
+            </div>
+            <div class="mb-7">
+                <label class="block text-gray-700 mb-2" for="student-form-class">ชั้นเรียน</label>
+                <select id="student-form-class" name="student-form-class" class="w-full p-2 border rounded-lg" required></select>
+            </div>
+            <button type="submit" class="btn btn-primary w-full">บันทึก</button>
+        </form>
+    </div>
+</div>
+<div id="infractionModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close">×</span>
+        <h2 class="modal-title text-xl font-semibold mb-2"></h2>
+        <form id="infractionForm">
+            <input type="hidden" id="infraction-id">
+            <input type="hidden" id="infraction-student-uuid">
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2">ชื่อนักเรียน</label>
+                <input type="text" id="student-name-modal" class="w-full p-2 border rounded-lg bg-gray-100" readonly>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2">ชั้นเรียน</label>
+                <input type="text" id="student-class-modal" class="w-full p-2 border rounded-lg bg-gray-100" readonly>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="infraction-date">วันที่</label>
+                <input type="date" id="infraction-date" name="infraction-date" class="w-full p-2 border rounded-lg" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="behavior-select">พฤติกรรม</label>
+                <select id="behavior-select" name="behavior-select" class="w-full p-2 border rounded-lg" required></select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2" for="comment">บันทึกเพิ่มเติม</label>
+                <textarea id="comment" name="comment" rows="3" class="w-full p-2 border rounded-lg"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-full">บันทึก</button>
+        </form>
+    </div>
+</div>
+<div id="studentHistoryModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close">×</span>
+        <h2 class="modal-title text-xl font-semibold mb-4">ประวัติคะแนนของ: <span id="modal-student-name" class="text-theme-secondary"></span></h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ลำดับ</th>
+                        <th>วันที่</th>
+                        <th>พฤติกรรม</th>
+                        <th>ประเภท</th>
+                        <th>คะแนน</th>
+                        <th>บันทึก</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="student-history-table-body"></tbody>
+            </table>
+        </div>
+        <div id="student-history-pagination" class="pagination-container"></div>
+    </div>
+</div>
+
+<div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] hidden">
+    <div class="bg-white p-8 rounded-lg shadow-lg text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-theme-primary mx-auto mb-4"></div>
+        <p id="loading-text" class="text-gray-700 font-medium"></p>
+    </div>
+</div>
+
+<script>
+    // --- Global State & Config ---
+    let currentUser = null;
+    let behaviorChartInstance = null;
+    let classChartInstance = null;
+    let selectedStudentUUID = null;
+    let selectedStudentName = null; // <<< เพิ่มบรรทัดนี้
+    const ROWS_PER_PAGE = 20;
+    let allBehaviors = [];
+    let allClasses = [];
+    let allStudents = [];
+    let allInfractionStudents = [];
+    let allReportStudents = [];
+    let currentStudentHistory = [];
+
+    // --- Utility & UI Functions ---
+    const showLoading = (text = "กำลังโหลด...") => {
+        $('#loading-text').text(text);
+        $('#loading-overlay').removeClass('hidden').css('display', 'flex');
+    };
+
+    const hideLoading = () => {
+        $('#loading-overlay').addClass('hidden').css('display', 'none');
+    };
+
+    const handleError = (error) => {
+        hideLoading();
+        Swal.fire(
+            'เกิดข้อผิดพลาด',
+            error.message || (typeof error === 'string' ? error : 'การดำเนินการล้มเหลว'),
+            'error'
+        );
+    };
+
+    const showSuccess = (title, text) => {
+        Swal.fire(title, text, 'success');
+    };
+
+    const confirmDelete = (title, text) => {
+        return Swal.fire({
+            title,
+            text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ลบเลย',
+            cancelButtonText: 'ยกเลิก'
+        });
+    };
+
+function toggleSidebar() {
+    // สลับคลาสบน body เพื่อปรับ margin ของ content
+    $('body').toggleClass('sidebar-collapsed');
+    
+    // [จุดที่แก้ไข] เพิ่มบรรทัดนี้เพื่อสลับคลาส 'collapsed' บนตัว sidebar เอง
+    // ทำให้ CSS rule `.sidebar.collapsed` ทำงานได้ถูกต้อง
+    $('#sidebar').toggleClass('collapsed');
+
+    if ($(window).width() <= 768) {
+        $('#sidebar').toggleClass('toggled');
+    } else {
+        $('#sidebar').removeClass('toggled'); // Ensure sidebar is not toggled on desktop
+    }
+}
+
+ function openModal(modalId, title) {
+    const form = $(modalId).find('form');
+    // ตรวจสอบว่ามีฟอร์มใน modal หรือไม่ก่อนที่จะรีเซ็ต
+    if (form.length > 0) {
+        form[0].reset();
+    }
+    $(modalId).find('.error').removeClass('error').empty();
+    $(`${modalId} .modal-title`).text(title);
+    $(modalId).css('display', 'flex');
+}
+
+    // --- Pagination ---
+    function renderPaginatedTable(data, currentPage, tableBodyId, paginationId, rowRenderer) {
+        const tableBody = $(`#${tableBodyId}`);
+        const paginationContainer = $(`#${paginationId}`);
+        
+        tableBody.empty();
+        paginationContainer.empty();
+        
+        const colspan = tableBody.closest('table').find('thead th').length;
+        if (!data || data.length === 0) {
+            tableBody.html(`<tr><td colspan="${colspan}" class="text-center py-4">ไม่มีข้อมูล</td></tr>`);
+            return;
+        }
+
+        const totalPages = Math.ceil(data.length / ROWS_PER_PAGE);
+        currentPage = Math.max(1, Math.min(currentPage, totalPages));
+        const start = (currentPage - 1) * ROWS_PER_PAGE;
+        const paginatedItems = data.slice(start, start + ROWS_PER_PAGE);
+
+        paginatedItems.forEach((item, index) => {
+            tableBody.append(rowRenderer(item, start + index));
+        });
+
+        let paginationHtml = `
+            <div class="pagination-info">
+                หน้า ${currentPage}/${totalPages} (รวม ${data.length})
+            </div>
+            <div class="pagination-controls">
+                <button ${currentPage === 1 ? 'disabled' : ''} onclick="changePage('${paginationId}', ${currentPage - 1})">
+                    « ก่อนหน้า
+                </button>
+                <button ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage('${paginationId}', ${currentPage + 1})">
+                    ถัดไป »
+                </button>
+            </div>`;
+        paginationContainer.html(paginationHtml);
+    }
+
+    function changePage(paginationId, newPage) {
+        const pageRenderMap = {
+            'behavior-pagination': () => renderPaginatedTable(allBehaviors, newPage, 'behavior-table-body', paginationId, renderBehaviorRow),
+            'class-pagination': () => renderPaginatedTable(allClasses, newPage, 'class-table-body', paginationId, renderClassRow),
+            'student-pagination': () => renderPaginatedTable(allStudents, newPage, 'student-table-body', paginationId, renderStudentRow),
+            'infraction-student-pagination': () => renderPaginatedTable(allInfractionStudents, newPage, 'infraction-student-table-body', paginationId, renderInfractionStudentRow),
+            'student-history-pagination': () => renderPaginatedTable(currentStudentHistory, newPage, 'student-history-table-body', paginationId, renderStudentHistoryRow),
+            'report-pagination': () => renderPaginatedTable(allReportStudents, newPage, 'report-table-body', paginationId, renderReportRow),
+            'student-infractions-pagination': () => renderPaginatedTable(currentStudentHistory, newPage, 'student-infractions-table-body', paginationId, renderStudentDashboardHistoryRow)
+        };
+
+        if (pageRenderMap[paginationId]) {
+            pageRenderMap[paginationId]();
+        }
+    }
+
+    // --- Document Ready ---
+    $(document).ready(() => {
+        showLoginPage();
+        setupValidations();
+        setupEventListeners();
+    });
+
+    // --- Setup Functions ---
+    function setupEventListeners() {
+        // Login Form Switching
+        $('#switch-to-student-login').on('click', (e) => {
+            e.preventDefault();
+            $('#teacher-login-form-container').addClass('hidden');
+            $('#student-login-form-container').removeClass('hidden');
+        });
+
+        $('#switch-to-teacher-login').on('click', (e) => {
+            e.preventDefault();
+            $('#student-login-form-container').addClass('hidden');
+            $('#teacher-login-form-container').removeClass('hidden');
+        });
+
+        // Sidebar and Logout
+        $('.sidebar-toggle, .sidebar-close-btn').on('click', toggleSidebar);
+        $('#logout-btn, #student-logout').on('click', logout);
+
+        // Sidebar Menu Navigation
+        $('.sidebar-item').on('click', function(e) {
+            e.preventDefault();
+            const page = $(this).data('page');
+
+            $('.sidebar-item').removeClass('active');
+            $(this).addClass('active');
+
+            $('#main-content .page-content').addClass('hidden');
+            $(`#${page}`).removeClass('hidden');
+
+            if ($(window).width() <= 768) {
+                $('#sidebar').removeClass('toggled');
+            }
+
+            const pageLoadMap = {
+                'dashboard': { fn: loadDashboard, requiresLoading: true },
+                'behavior-criteria': { fn: loadBehaviors, requiresLoading: true },
+                'manage-classes': { fn: loadClasses, requiresLoading: true },
+                'manage-students': { fn: loadStudents, requiresLoading: true },
+                'log-infraction': { 
+                    fn: () => { 
+                        loadInfractionPage(); 
+                    }, 
+                    requiresLoading: true 
+                },
+                'student-report': { fn: loadReportPage, requiresLoading: true }
+            };
+
+            if (pageLoadMap[page]) {
+                if (pageLoadMap[page].requiresLoading) {
+                    showLoading(`กำลังโหลดหน้า ${$(this).text().trim()}...`);
+                }
+                pageLoadMap[page].fn();
+            } else {
+                hideLoading();
+            }
+        });
+
+        // Add Buttons
+        $('#add-behavior').on('click', () => {
+            $('#behavior-id').val('');
+            $('#behavior-type-select').val('negative');
+            $('#behavior-name').val('');
+            $('#behavior-score').val('');
+            openModal('#behaviorModal', 'เพิ่มเกณฑ์พฤติกรรม');
+        });
+
+        $('#add-class').on('click', () => {
+            $('#class-id').val('');
+            $('#class-name').val('');
+            openModal('#classModal', 'เพิ่มชั้นเรียน');
+        });
+
+        $('#add-student').on('click', () => {
+            showLoading();
+            $('#student-form-uuid').val('');
+            $('#student-code-input').val('');
+            $('#student-form-name').val('');
+            $('#student-form-class').val('');
+            loadClassesForStudentModal(() => {
+                hideLoading();
+                openModal('#studentModal', 'เพิ่มนักเรียน');
+            });
+        });
+
+        // Import/Export
+        $('#download-template').on('click', downloadTemplateCSV);
+        $('#import-students-btn').on('click', () => $('#import-students').click());
+        $('#import-students').on('change', importStudentsCSV);
+
+        // Filters
+        $('#filter-class-student').on('change', () => {
+          showLoading('กำลังกรองข้อมูล...'); // --- เพิ่มบรรทัดนี้ ---
+            loadInfractionPage();
+        });
+
+        $('#search-student-report, #filter-class-report, #filter-status-report').on('input change', filterStudentReport);
+
+        $('#export-pdf').on('click', () => exportReport('pdf'));
+        $('#export-csv').on('click', () => exportReport('csv'));
+
+        // Modal Close
+$('.modal-close').on('click', function() {
+    const modal = $(this).closest('.modal');
+    const modalId = modal.attr('id');
+
+    modal.hide();
+
+    if (modalId === 'infractionModal' && selectedStudentUUID) {
+        $('#studentHistoryModal').css('display', 'flex');
+    } 
+    else if (modalId === 'studentHistoryModal') {
+        selectedStudentUUID = null;
+        selectedStudentName = null; // <<< เพิ่มบรรทัดนี้
+    }
+});
+
+        $(document).on('click', '.modal', function(e) {
+            if (e.target === this) $(this).hide();
+        });
+    }
+
+    function setupValidations() {
+        $.extend($.validator.messages, {
+            required: "กรุณากรอกข้อมูลนี้",
+            number: "กรุณากรอกเป็นตัวเลขเท่านั้น"
+        });
+
+        $('#teacherLoginForm').validate({ submitHandler: teacherLogin });
+        $('#studentLoginForm').validate({ submitHandler: studentLogin });
+        $('#behaviorForm').validate({
+            rules: {
+                'behavior-score': {
+                    required: true,
+                    number: true
+                }
+            },
+            submitHandler: saveBehavior
+        });
+        $('#classForm').validate({ submitHandler: saveClass });
+        $('#student-form').validate({ submitHandler: saveStudent });
+        $('#infractionForm').validate({ submitHandler: saveInfraction });
+    }
+
+    // --- Authentication ---
+    function teacherLogin() {
+        showLoading('กำลังเข้าสู่ระบบ...');
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    currentUser = { username: $('#username').val() };
+                    showTeacherDashboard();
+                } else {
+                    handleError(res);
+                }
+            })
+            .withFailureHandler(handleError)
+            .teacherLogin($('#username').val(), $('#password').val());
+    }
+
+    function studentLogin() {
+        showLoading('กำลังตรวจสอบข้อมูล...');
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    showStudentDashboard(res.student);
+                } else {
+                    handleError(res);
+                }
+            })
+            .withFailureHandler(handleError)
+            .getStudentByCode($('#student-code-login').val());
+    }
+
+    function logout() {
+        showLoading('กำลังออกจากระบบ...');
+        setTimeout(() => {
+            hideLoading();
+            showLoginPage();
+        }, 500);
+    }
+
+    // --- Page Control ---
+function showLoginPage() {
+    $('#login-page').removeClass('hidden');
+    $('#sidebar, #main-content, #student-dashboard').addClass('hidden');
+    $('body').addClass('sidebar-collapsed');
+    currentUser = null;
+    $('.sidebar-toggle').hide(); // <<< เพิ่มบรรทัดนี้
+}
+
+function showTeacherDashboard() {
+    $('#login-page, #student-dashboard').addClass('hidden');
+    $('#sidebar, #main-content').removeClass('hidden');
+    if ($(window).width() > 768) {
+        $('body').removeClass('sidebar-collapsed');
+    }
+    $('#current-username').text(`ครู: ${currentUser.username}`);
+    $('.sidebar-item').removeClass('active').first().addClass('active');
+    $('#main-content .page-content').addClass('hidden').first().removeClass('hidden');
+    $('.sidebar-toggle').show(); // <<< เพิ่มบรรทัดนี้
+    loadDashboard();
+}
+
+function showStudentDashboard(student) {
+    $('#login-page, #sidebar, #main-content').addClass('hidden');
+    $('#student-dashboard').removeClass('hidden');
+    $('body').addClass('sidebar-collapsed');
+    $('.sidebar-toggle').hide(); // <<< เพิ่มบรรทัดนี้
+    loadStudentDashboard(student);
+}
+
+    // --- Data Loading & Rendering ---
+    const loadDashboard = () => {
+        google.script.run
+            .withSuccessHandler(updateDashboard)
+            .withFailureHandler(handleError)
+            .getDashboardData();
+    };
+
+    const loadBehaviors = () => {
+        google.script.run
+            .withSuccessHandler(data => {
+                hideLoading();
+                allBehaviors = data;
+                renderPaginatedTable(allBehaviors, 1, 'behavior-table-body', 'behavior-pagination', renderBehaviorRow);
+            })
+            .withFailureHandler(handleError)
+            .getBehaviors();
+    };
+
+    const loadClasses = () => {
+        google.script.run
+            .withSuccessHandler(data => {
+                hideLoading();
+                allClasses = data;
+                renderPaginatedTable(allClasses, 1, 'class-table-body', 'class-pagination', renderClassRow);
+            })
+            .withFailureHandler(handleError)
+            .getClassesWithStudentCount();
+    };
+
+    const loadStudents = () => {
+        google.script.run
+            .withSuccessHandler(data => {
+                hideLoading();
+                allStudents = data.students;
+                renderPaginatedTable(allStudents, 1, 'student-table-body', 'student-pagination', renderStudentRow);
+            })
+            .withFailureHandler(handleError)
+            .getStudentsAndClasses();
+    };
+
+    const loadInfractionPage = () => {
+        const classFilter = $('#filter-class-student').val();
+        google.script.run
+            .withSuccessHandler(data => {
+                hideLoading();
+                updateClassDropdown(data.classes, '#filter-class-student', classFilter);
+                allInfractionStudents = classFilter ? data.students.filter(s => s.class === classFilter) : data.students;
+                renderPaginatedTable(allInfractionStudents, 1, 'infraction-student-table-body', 'infraction-student-pagination', renderInfractionStudentRow);
+            })
+            .withFailureHandler(handleError)
+            .getInfractionFormData();
+    };
+
+    const loadReportPage = () => {
+        google.script.run
+            .withSuccessHandler(data => {
+                hideLoading();
+                updateClassDropdown(data.classes, '#filter-class-report');
+                allReportStudents = data.students;
+                renderPaginatedTable(allReportStudents, 1, 'report-table-body', 'report-pagination', renderReportRow);
+            })
+            .withFailureHandler(handleError)
+            .getStudentReportData();
+    };
+
+    function loadStudentDashboard(studentData) {
+        showLoading('กำลังโหลดข้อมูล...');
+        $('#student-user-info-container').removeClass('hidden').find('#student-name-top-right').text(studentData.name);
+        $('#student-code-display').text(studentData.studentCode);
+        $('#student-name-display').text(studentData.name);
+        $('#student-class-display').text(studentData.class);
+        
+        const remaining = (studentData.initialScore || 0) - (studentData.deductedScore || 0) + (studentData.addedScore || 0);
+        $('#student-initial-score').text(studentData.initialScore || 0);
+        $('#student-added-score').text(`+${studentData.addedScore || 0}`);
+        $('#student-deducted-score').text(`-${studentData.deductedScore || 0}`);
+        $('#student-remaining-score').text(remaining);
+
+        google.script.run
+            .withSuccessHandler(data => {
+                hideLoading();
+                currentStudentHistory = data;
+                renderPaginatedTable(currentStudentHistory, 1, 'student-infractions-table-body', 'student-infractions-pagination', renderStudentDashboardHistoryRow);
+            })
+            .withFailureHandler(handleError)
+            .getStudentInfractions(studentData.id);
+    }
+
+    // --- Row Renderers ---
+    const createActionIcon = (type, id) => {
+        const isEdit = type.includes('edit');
+        return `
+            <span class="action-icon ${isEdit ? 'edit-icon' : 'delete-icon'}" onclick="${type}('${id}')">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    ${isEdit ? 
+                        '<path d="M13.586 3.586a2 2 0 112.828 2.828l-8.485 8.485a1 1 0 01-.293.207l-4 1.333a1 1 0 01-1.213-1.213l1.333-4a1 1 0 01.207-.293l8.485-8.485z"></path>' :
+                        '<path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path>'
+                    }
+                </svg>
+            </span>`;
+    };
+
+    const renderBehaviorRow = (b, i) => {
+        const typeText = b.type === 'positive' ? 'เพิ่มคะแนน' : 'หักคะแนน';
+        const typeClass = b.type === 'positive' ? 'score-added' : 'score-danger';
+        const scoreDisplay = typeClass === 'score-added' ? `+${b.score}` : `${b.score}`;
+        
+        return `
+            <tr>
+                <td>${i + 1}</td>
+                <td>${b.name}</td>
+                <td class="${typeClass}">${typeText}</td>
+                <td class="${typeClass}">${scoreDisplay}</td>
+                <td>
+                    ${createActionIcon('editBehavior', b.id)}
+                    ${createActionIcon('deleteBehavior', b.id)}
+                </td>
+            </tr>`;
+    };
+
+    const renderClassRow = (c, i) => `
+        <tr>
+            <td>${i + 1}</td>
+            <td>${c.name}</td>
+            <td>${c.studentCount}</td>
+            <td>
+                ${createActionIcon('editClass', c.id)}
+                ${createActionIcon('deleteClass', c.id)}
+            </td>
+        </tr>`;
+
+    const renderStudentRow = (s, i) => `
+        <tr>
+            <td>${i + 1}</td>
+            <td>${s.studentCode}</td>
+            <td>${s.name}</td>
+            <td>${s.class}</td>
+            <td>
+                ${createActionIcon('editStudent', s.id)}
+                ${createActionIcon('deleteStudent', s.id)}
+            </td>
+        </tr>`;
+
+// --- Row Renderers (แก้ไขเฉพาะ renderInfractionStudentRow) ---
+const renderInfractionStudentRow = (s, i) => {
+    // คำนวณคะแนนคงเหลือ
+    const remainingScore = (s.initialScore || 0) - (s.deductedScore || 0) + (s.addedScore || 0);
+
+    return `
+    <tr>
+        <td>${i + 1}</td>
+        <td>${s.studentCode}</td>
+        <td>
+            <a href="#" class="text-blue-600 hover:underline" onclick="showStudentHistory('${s.id}', '${s.name.replace(/'/g, "\\'")}')">
+                ${s.name}
+            </a>
+        </td>
+        <td>${s.class}</td>
+        <td>${remainingScore}</td> <td>
+            <button class="btn btn-sm btn-primary" onclick="openInfractionModal('${s.id}', '${s.name.replace(/'/g, "\\'")}', '${s.class}')">
+                บันทึก
+            </button>
+        </td>
+    </tr>`;
+};
+
+    const renderStudentHistoryRow = (h, i) => {
+        const typeText = h.behaviorType === 'positive' ? 'เพิ่ม' : 'หัก';
+        const scoreClass = h.behaviorType === 'positive' ? 'score-added' : 'score-danger';
+        const scoreDisplay = scoreClass === 'score-added' ? `+${h.behaviorScore}` : `${h.behaviorScore}`;
+        
+        return `
+            <tr>
+                <td>${i + 1}</td>
+                <td>${new Date(h.date).toLocaleDateString('th-TH')}</td>
+                <td>${h.behaviorName}</td>
+                <td class="${scoreClass}">${typeText}</td>
+                <td class="${scoreClass}">${scoreDisplay}</td>
+                <td>${h.comment || '-'}</td>
+                <td>
+                    ${createActionIcon('editInfraction', h.id)}
+                    ${createActionIcon('deleteInfraction', h.id)}
+                </td>
+            </tr>`;
+    };
+
+    const renderStudentDashboardHistoryRow = (h, i) => {
+        const typeText = h.behaviorType === 'positive' ? 'เพิ่ม' : 'หัก';
+        const scoreClass = h.behaviorType === 'positive' ? 'score-added' : 'score-danger';
+        const scoreDisplay = scoreClass === 'score-added' ? `+${h.behaviorScore}` : `${h.behaviorScore}`;
+        
+        return `
+            <tr>
+                <td>${i + 1}</td>
+                <td>${new Date(h.date).toLocaleDateString('th-TH')}</td>
+                <td>${h.behaviorName}</td>
+                <td class="${scoreClass}">${typeText}</td>
+                <td class="${scoreClass}">${scoreDisplay}</td>
+                <td>${h.comment || '-'}</td>
+            </tr>`;
+    };
+
+    const renderReportRow = (s, i) => {
+        const remaining = (s.initialScore || 0) - (s.deductedScore || 0) + (s.addedScore || 0);
+        let status = 'ปกติ';
+        let statusClass = 'bg-green-100 text-green-800';
+        if (remaining <= -50) {
+            status = 'น่าห่วง';
+            statusClass = 'bg-red-100 text-red-800';
+        } else if (remaining <= -25) {
+            status = 'เฝ้าระวัง';
+            statusClass = 'bg-yellow-100 text-yellow-800';
+        }
+        
+        return `
+            <tr>
+                <td>${i + 1}</td>
+                <td>${s.studentCode}</td>
+                <td>${s.name}</td>
+                <td>${s.class}</td>
+                <td>${remaining}</td>
+                <td>
+                    <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
+                        ${status}
+                    </span>
+                </td>
+            </tr>`;
+    };
+
+    // --- CRUD Actions ---
+    const saveBehavior = () => {
+        const type = $('#behavior-type-select').val();
+        const score = parseInt($('#behavior-score').val());
+        
+        // Validate score based on behavior type
+        if (type === 'positive' && (score < 0 || score > 100)) {
+            Swal.fire('ข้อผิดพลาด', 'คะแนนสำหรับพฤติกรรมเชิงบวกต้องอยู่ในช่วง 0 ถึง 100', 'error');
+            return;
+        }
+        if (type === 'negative' && (score < -100 || score > 0)) {
+            Swal.fire('ข้อผิดพลาด', 'คะแนนสำหรับพฤติกรรมเชิงลบต้องอยู่ในช่วง -100 ถึง 0', 'error');
+            return;
+        }
+
+        const data = {
+            id: $('#behavior-id').val(),
+            name: $('#behavior-name').val(),
+            score: score,
+            type: type
+        };
+        
+      showLoading();
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    $('#behaviorModal').hide();
+                    showSuccess('บันทึกสำเร็จ', 'เกณฑ์พฤติกรรมถูกบันทึกเรียบร้อยแล้ว'); // <<< เพิ่มการแจ้งเตือน
+                    loadBehaviors();
+                } else {
+                    handleError(res);
+                }
+            })
+            .withFailureHandler(handleError)
+            .saveBehavior(data);
+    };
+
+  const editBehavior = (id) => {
+        showLoading();
+        google.script.run
+            .withSuccessHandler(behavior => {
+                hideLoading();
+                if (behavior && behavior.id) {
+                    openModal('#behaviorModal', 'แก้ไขพฤติกรรม'); // 1. เปิด Modal ก่อน
+                    // 2. จากนั้นค่อยแสดงข้อมูล
+                    $('#behavior-id').val(behavior.id);
+                    $('#behavior-name').val(behavior.name || '');
+                    $('#behavior-score').val(behavior.score || 0);
+                    $('#behavior-type-select').val(behavior.type || 'negative');
+                } else {
+                    handleError({ message: 'ไม่พบข้อมูลพฤติกรรม' });
+                }
+            })
+            .withFailureHandler(handleError)
+            .getBehaviorById(id);
+    };
+
+const deleteBehavior = (id) => {
+        confirmDelete('ยืนยันการลบ', 'คุณแน่ใจหรือไม่ที่จะลบพฤติกรรมนี้?').then(result => {
+            if (result.isConfirmed) {
+                showLoading();
+                google.script.run
+                    .withSuccessHandler(res => {
+                        hideLoading();
+                        if (res.success) {
+                            showSuccess('ลบสำเร็จ', 'เกณฑ์พฤติกรรมถูกลบเรียบร้อยแล้ว'); // <<< เพิ่มการแจ้งเตือน
+                            loadBehaviors();
+                        } else {
+                            handleError(res);
+                        }
+                    })
+                    .withFailureHandler(handleError)
+                    .deleteBehavior(id);
+            }
+        });
+    };
+
+    const saveClass = () => {
+        const data = {
+            id: $('#class-id').val(),
+            name: $('#class-name').val()
+        };
+        
+        showLoading();
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    $('#classModal').hide();
+                    showSuccess('บันทึกสำเร็จ', 'ข้อมูลชั้นเรียนถูกบันทึกเรียบร้อยแล้ว'); // <<< เพิ่มการแจ้งเตือน
+                    loadClasses();
+                } else {
+                    handleError(res);
+                }
+            })
+            .withFailureHandler(handleError)
+            .saveClass(data);
+    };
+
+    const editClass = (id) => {
+        showLoading();
+        google.script.run
+            .withSuccessHandler(classData => {
+                hideLoading();
+                if (classData && classData.id) {
+                    openModal('#classModal', 'แก้ไขชั้นเรียน'); // 1. เปิด Modal ก่อน
+                    // 2. จากนั้นค่อยแสดงข้อมูล
+                    $('#class-id').val(classData.id);
+                    $('#class-name').val(classData.name || '');
+                } else {
+                    handleError({ message: 'ไม่พบข้อมูลชั้นเรียน' });
+                }
+            })
+            .withFailureHandler(handleError)
+            .getClassById(id);
+    };
+
+   const deleteClass = (id) => {
+        confirmDelete('ยืนยันการลบ', 'การลบชั้นเรียนจะทำได้เมื่อไม่มีนักเรียนในชั้นเรียนนี้').then(result => {
+            if (result.isConfirmed) {
+                showLoading();
+                google.script.run
+                    .withSuccessHandler(res => {
+                        hideLoading();
+                        if (res.success) {
+                            showSuccess('ลบสำเร็จ', 'ข้อมูลชั้นเรียนถูกลบเรียบร้อยแล้ว'); // <<< เพิ่มการแจ้งเตือน
+                            loadClasses();
+                        } else {
+                            handleError(res);
+                        }
+                    })
+                    .withFailureHandler(handleError)
+                    .deleteClass(id);
+            }
+        });
+    };
+
+    const saveStudent = () => {
+        const data = {
+            uuid: $('#student-form-uuid').val(),
+            studentCode: $('#student-code-input').val(),
+            name: $('#student-form-name').val(),
+            class: $('#student-form-class').val()
+        };
+        
+        showLoading();
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                if (res.success) {
+                    $('#studentModal').hide();
+                    showSuccess('บันทึกสำเร็จ', 'ข้อมูลนักเรียนถูกบันทึกเรียบร้อยแล้ว'); // <<< เพิ่มการแจ้งเตือน
+                    loadStudents();
+                } else {
+                    handleError(res);
+                }
+            })
+            .withFailureHandler(handleError)
+            .saveStudent(data);
+    };
+
+const editStudent = (id) => {
+        showLoading();
+        google.script.run
+            .withSuccessHandler(student => {
+                if (student && student.id) {
+                    // โหลดข้อมูล class มาใส่ dropdown ก่อน
+                    loadClassesForStudentModal(() => {
+                        openModal('#studentModal', 'แก้ไขนักเรียน'); // 1. เปิด Modal ก่อน
+                        // 2. จากนั้นค่อยแสดงข้อมูล
+                        $('#student-form-uuid').val(student.id);
+                        $('#student-code-input').val(student.studentCode || '');
+                        $('#student-form-name').val(student.name || '');
+                        $('#student-form-class').val(student.class || '');
+                        hideLoading(); // ซ่อน loading หลังจากทุกอย่างพร้อม
+                    });
+                } else {
+                    hideLoading();
+                    handleError({ message: 'ไม่พบข้อมูลนักเรียน' });
+                }
+            })
+            .withFailureHandler(err => {
+                hideLoading();
+                handleError(err);
+            })
+            .getStudentById(id);
+    };
+
+
+ const deleteStudent = (id) => {
+        confirmDelete('ยืนยันการลบ', 'การลบนักเรียนจะทำได้เมื่อไม่มีประวัติการกระทำผิด').then(result => {
+            if (result.isConfirmed) {
+                showLoading();
+                google.script.run
+                    .withSuccessHandler(res => {
+                        hideLoading();
+                        if (res.success) {
+                            showSuccess('ลบสำเร็จ', 'ข้อมูลนักเรียนถูกลบเรียบร้อยแล้ว'); // <<< เพิ่มการแจ้งเตือน
+                            loadStudents();
+                        } else {
+                            handleError(res);
+                        }
+                    })
+                    .withFailureHandler(handleError)
+                    .deleteStudent(id);
+            }
+        });
+    };
+
+const saveInfraction = () => {
+    const data = {
+        id: $('#infraction-id').val(),
+        studentUUID: $('#infraction-student-uuid').val(),
+        date: $('#infraction-date').val(),
+        behaviorId: $('#behavior-select').val(),
+        comment: $('#comment').val()
+    };
+
+    showLoading('กำลังบันทึกข้อมูล...'); // <<< เพิ่มบรรทัดนี้
+
+    google.script.run
+        .withSuccessHandler(res => {
+            hideLoading();
+            if (res.success) {
+                $('#infractionModal').hide();
+                showSuccess('บันทึกสำเร็จ', 'ระบบได้บันทึกข้อมูลพฤติกรรมเรียบร้อยแล้ว');
+
+                // หากมีการเปิดจากหน้าประวัติ ให้โหลดประวัติใหม่
+                if (selectedStudentUUID) {
+                    // vvv ส่วนที่แก้ไข vvv
+                    showStudentHistory(selectedStudentUUID, selectedStudentName); // เปลี่ยนจากการดึงค่าใน HTML มาใช้ตัวแปรแทน
+                    // ^^^ ส่วนที่แก้ไข ^^^
+                }
+                // โหลดข้อมูลหน้าบันทึกพฤติกรรมใหม่เสมอ เพื่ออัปเดตคะแนนคงเหลือ
+                loadInfractionPage();
+            } else {
+                handleError(res);
+            }
+        })
+        .withFailureHandler(handleError)
+        .saveInfraction(data);
+};
+
+const editInfraction = (id) => {
+    $('#studentHistoryModal').hide(); // ซ่อน Modal ประวัติก่อน
+    showLoading();
+    google.script.run
+        .withSuccessHandler(data => {
+            hideLoading();
+            if (data) {
+                loadBehaviorsForInfractionModal(() => {
+                    openModal('#infractionModal', `แก้ไขการกระทำผิด: ${data.studentName}`);
+                    $('#infraction-id').val(data.id);
+                    $('#infraction-student-uuid').val(data.studentUUID);
+                    $('#student-name-modal').val(data.studentName);
+                    $('#student-class-modal').val(data.studentClass);
+                    $('#infraction-date').val(data.date);
+                    $('#comment').val(data.comment);
+                    $('#behavior-select').val(data.behaviorId);
+                });
+            } else {
+                $('#studentHistoryModal').css('display', 'flex'); // แสดง Modal ประวัติอีกครั้งถ้าเกิดข้อผิดพลาด
+                handleError({ message: 'ไม่พบข้อมูลการกระทำผิด' });
+            }
+        })
+        .withFailureHandler(err => {
+            hideLoading();
+            $('#studentHistoryModal').css('display', 'flex'); // แสดง Modal ประวัติอีกครั้งถ้าเกิดข้อผิดพลาด
+            handleError(err);
+        })
+        .getInfractionById(id);
+};
+
+const deleteInfraction = (id) => {
+    $('#studentHistoryModal').hide();
+    confirmDelete('ยืนยันการลบ', 'คะแนนของนักเรียนจะถูกปรับปรุงคืน').then(result => {
+        if (result.isConfirmed) {
+            showLoading();
+            google.script.run
+                .withSuccessHandler(res => {
+                    hideLoading();
+                    if (res.success) {
+                        showSuccess('ลบสำเร็จ', 'รายการพฤติกรรมถูกลบและคะแนนถูกปรับปรุงแล้ว');
+                        
+                        // รีเฟรชหน้าต่างประวัติ (Modal)
+                        showStudentHistory(selectedStudentUUID, selectedStudentName);
+                        
+                        // vvv เพิ่มบรรทัดนี้ vvv
+                        // สั่งให้รีเฟรชตารางหลักที่อยู่ด้านหลัง เพื่ออัปเดตคะแนนคงเหลือ
+                        loadInfractionPage(); 
+                        // ^^^ สิ้นสุดส่วนที่เพิ่ม ^^^
+
+                    } else {
+                        handleError(res);
+                        $('#studentHistoryModal').css('display', 'flex');
+                    }
+                })
+                .withFailureHandler(handleError)
+                .deleteInfraction(id);
+        } else {
+            $('#studentHistoryModal').css('display', 'flex');
+        }
+    });
+};
+
+
+function showStudentHistory(uuid, name) {
+    if (!uuid || !name) {
+        handleError({ message: 'ไม่สามารถโหลดประวัติได้: ข้อมูลนักเรียนไม่ครบถ้วน' });
+        return;
+    }
+    showLoading(`กำลังโหลดประวัติของ ${name}...`);
+    selectedStudentUUID = uuid;
+    selectedStudentName = name; // <<< เพิ่มบรรทัดนี้
+    $('#modal-student-name').text(name);
+    
+    google.script.run
+        .withSuccessHandler(data => {
+            hideLoading();
+            if (!data || data.length === 0) {
+                $('#student-history-table-body').html('<tr><td colspan="7" class="text-center py-4">ไม่มีข้อมูลประวัติพฤติกรรม</td></tr>');
+                $('#student-history-pagination').empty();
+                openModal('#studentHistoryModal', `ประวัติคะแนนของ: ${name}`);
+                return;
+            }
+            currentStudentHistory = data;
+            renderPaginatedTable(currentStudentHistory, 1, 'student-history-table-body', 'student-history-pagination', renderStudentHistoryRow);
+            openModal('#studentHistoryModal', `ประวัติคะแนนของ: ${name}`);
+        })
+        .withFailureHandler(err => {
+            hideLoading();
+            handleError(err);
+        })
+        .getStudentInfractions(uuid);
+}
+
+function openInfractionModal(uuid, name, className) {
+    showLoading();
+    loadBehaviorsForInfractionModal(() => {
+        hideLoading();
+        openModal('#infractionModal', `บันทึกพฤติกรรม: ${name}`);
+        $('#infraction-id').val('');
+        $('#infraction-student-uuid').val(uuid);
+        $('#student-name-modal').val(name);
+        $('#student-class-modal').val(className);
+        $('#infraction-date').val(new Date().toISOString().slice(0, 10));
+    });
+}
+
+function updateClassDropdown(classes, selector, selectedValue = "") {
+    let html = '<option value="">--กรุณาเลือกชั้นเรียน--</option>';
+    classes.forEach(c => {
+        html += `<option value="${c.name}" ${c.name === selectedValue ? 'selected' : ''}>${c.name}</option>`;
+    });
+    $(selector).html(html);
+}
+
+function loadClassesForStudentModal(callback) {
+    google.script.run
+        .withSuccessHandler(classes => {
+            updateClassDropdown(classes, '#student-form-class');
+            if (callback) callback();
+        })
+        .withFailureHandler(handleError)
+        .getClasses();
+}
+
+function loadBehaviorsForInfractionModal(callback) {
+    google.script.run
+        .withSuccessHandler(behaviors => {
+            let html = '<option value="">เลือกพฤติกรรม</option>';
+            behaviors.forEach(b => {
+                const type = b.type === 'positive' ? '[เพิ่ม]' : '[หัก]';
+                html += `<option value="${b.id}">${type} ${b.name} (${b.score} คะแนน)</option>`;
+            });
+            $('#behavior-select').html(html);
+            if (callback) callback();
+        })
+        .withFailureHandler(handleError)
+        .getBehaviors();
+}
+
+function filterStudentReport() {
+    clearTimeout(window.filterTimeout);
+    window.filterTimeout = setTimeout(() => {
+        showLoading('กำลังกรอง...');
+        google.script.run
+            .withSuccessHandler(data => {
+                hideLoading();
+                allReportStudents = data;
+                renderPaginatedTable(allReportStudents, 1, 'report-table-body', 'report-pagination', renderReportRow);
+            })
+            .withFailureHandler(handleError)
+            .filterStudentReport(
+                $('#search-student-report').val(),
+                $('#filter-class-report').val(),
+                $('#filter-status-report').val()
+            );
+    }, 300);
+}
+
+function downloadTemplateCSV() {
+    showLoading('กำลังสร้างเทมเพลต...');
+    google.script.run
+        .withSuccessHandler(url => {
+            hideLoading();
+            if (url) {
+                window.open(url, '_blank');
+            } else {
+                handleError({ message: 'ไม่สามารถสร้างไฟล์ได้' });
+            }
+        })
+        .withFailureHandler(handleError)
+        .downloadStudentTemplate();
+}
+
+function importStudentsCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    showLoading('กำลังนำเข้า...');
+    const reader = new FileReader();
+    reader.onload = e => {
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                showSuccess(res.success ? 'สำเร็จ' : 'เกิดข้อผิดพลาด', res.message);
+                if (res.success) loadStudents();
+            })
+            .withFailureHandler(handleError)
+            .importStudentsFromCSV(e.target.result);
+    };
+    reader.readAsText(file, 'UTF-8');
+    event.target.value = '';
+}
+
+function exportReport(type) {
+    showLoading(`กำลังสร้างไฟล์ ${type.toUpperCase()}...`);
+    google.script.run
+        .withSuccessHandler(url => {
+            hideLoading();
+            if (url) {
+                showSuccess('สร้างไฟล์สำเร็จ!', 'ไฟล์ของคุณกำลังจะเริ่มดาวน์โหลด');
+                window.open(url, '_blank');
+            } else {
+                handleError({ message: 'ไม่สามารถสร้างไฟล์สำหรับดาวน์โหลดได้' });
+            }
+        })
+        .withFailureHandler(handleError)
+        .exportReport(type);
+}
+
+function updateDashboard(data) {
+    hideLoading();
+    if (!data || data.success === false) {
+        return handleError(data || { message: 'ไม่สามารถโหลดข้อมูลแดชบอร์ด' });
+    }
+
+    $('#top-behavior').text(data.topBehavior.name || 'N/A');
+    $('#top-behavior-count').text(`${data.topBehavior.count || 0} ครั้ง`);
+    $('#lowest-student').text(data.lowestStudent.name || 'N/A');
+    
+    const lowestScoreVal = (data.lowestStudent.initialScore || 0) - 
+        (data.lowestStudent.deductedScore || 0) + 
+        (data.lowestStudent.addedScore || 0);
+    $('#lowest-score').text(`คะแนนคงเหลือ: ${lowestScoreVal}`);
+    $('#total-reports').text(data.totalReportsInMonth || 0);
+
+    if (behaviorChartInstance) behaviorChartInstance.destroy();
+    if (classChartInstance) classChartInstance.destroy();
+
+    if (data.behaviorStats && data.behaviorStats.labels.length > 0) {
+        behaviorChartInstance = new Chart($('#behaviorChart'), {
+            type: 'bar',
+            data: data.behaviorStats,
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+    if (data.classStats && data.classStats.labels.length > 0) {
+        classChartInstance = new Chart($('#classChart'), {
+            type: 'pie',
+            data: data.classStats,
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+}
+</script>
+</body>
+</html>
